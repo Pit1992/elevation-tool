@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Civil 3D 插值標高查詢工具</title>
+  <title>Elevation Difference Calculator</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>↑ Civil 3D 插值標高查詢工具</h1>
+  <h1>↑ Elevation Difference Calculator</h1>
+
+  <p><strong>Instructions:</strong> Please upload a <code>.xml</code> file exported from Civil 3D, then enter Easting and Northing coordinates to calculate interpolated elevation.</p>
 
   <input type="file" id="xmlFile" accept=".xml" />
   <br />
-  <input type="text" id="easting" placeholder="E 座標" />
-  <input type="text" id="northing" placeholder="N 座標" />
-  <button onclick="findElevation()">查詢標高</button>
+  <input type="text" id="xCoord" placeholder="Easting" />
+  <input type="text" id="yCoord" placeholder="Northing" />
+  <button id="queryBtn">Query Elevation</button>
 
-  <label for="decimalSelect">小數點位數：</label>
+  <label for="decimalSelect">Decimal Places:</label>
   <select id="decimalSelect">
     <option value="2">2</option>
     <option value="3">3</option>
@@ -25,15 +27,20 @@
 
   <p id="result"></p>
 
-  <h2>查詢紀錄</h2>
-  <button onclick="clearHistory()">清除紀錄</button>
-  <table id="history-table" border="1">
-    <tr><th>Point ID</th><th>E</th><th>N</th><th>Elevation</th></tr>
+  <h2>Query History</h2>
+  <button id="clearLog">Clear History</button>
+  <table id="logTable" border="1">
+    <thead>
+      <tr>
+        <th>Point ID</th>
+        <th>Easting</th>
+        <th>Northing</th>
+        <th>Elevation</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
   </table>
 
   <script src="script.js"></script>
-  <script>
-    document.getElementById("xmlFile").addEventListener("change", loadXML);
-  </script>
 </body>
 </html>
