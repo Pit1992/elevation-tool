@@ -7,17 +7,19 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>↑ Elevation Difference Calculator</h1>
+  <h1>⬆️ Elevation Difference Calculator</h1>
 
-  <p><strong>Instructions:</strong> Please upload a <code>.xml</code> file exported from Civil 3D, then enter Easting and Northing coordinates to calculate interpolated elevation.</p>
+  <p><strong>Instruction:</strong> Please upload a LandXML file (e.g. exported from Civil 3D TIN surface), then enter Easting / Northing coordinates to query the elevation.</p>
 
   <input type="file" id="xmlFile" accept=".xml" />
+  <button id="downloadXmlBtn">⬇️ Download Saved XML</button>
   <br />
-  <input type="text" id="xCoord" placeholder="Easting" />
-  <input type="text" id="yCoord" placeholder="Northing" />
+
+  <input type="text" id="easting" placeholder="Easting" />
+  <input type="text" id="northing" placeholder="Northing" />
   <button id="queryBtn">Query Elevation</button>
 
-  <label for="decimalSelect">Decimal Places:</label>
+  <label for="decimalSelect">Decimal Places: </label>
   <select id="decimalSelect">
     <option value="2">2</option>
     <option value="3">3</option>
@@ -28,8 +30,8 @@
   <p id="result"></p>
 
   <h2>Query History</h2>
-  <button id="clearLog">Clear History</button>
-  <table id="logTable" border="1">
+  <button id="clearLog">🗑 Clear History</button>
+  <table id="history-table" border="1">
     <thead>
       <tr>
         <th>Point ID</th>
