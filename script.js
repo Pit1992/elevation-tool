@@ -1,37 +1,33 @@
 let xmlDoc = null;
 let pointIdCounter = 1;
 let decimalPlaces = 4;
+let originalXML = '';
 
-function loadXML(event) {
-  const file = event.target.files[0];
+document.getElementById("xmlFile").addEventListener("change", (e) => {
+  const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = (event) => {
+    originalXML = event.target.result;
     const parser = new DOMParser();
-    xmlDoc = parser.parseFromString(e.target.result, "text/xml");
-    alert("XML 載入成功！");
+    xmlDoc = parser.parseFromString(originalXML, "text/xml");
+    alert("XML uploaded successfully!");
   };
   reader.readAsText(file);
-}
+});
 
-function findElevation() {
-  if (!xmlDoc) {
-    alert("請先上傳 XML 檔案！");
-    return;
-  }
+document.getElementById("queryBtn").addEventListener("click", () => {
+  if (!xmlDoc) return alert("Please upload an XML file first!");
 
-  const e = parseFloat(document.getElementById("easting").value);
-  const n = parseFloat(document.getElementById("northing").value);
+  const x = parseFloat(document.getElementById("easting").value);
+  const y = parseFloat(document.getElementById("northing").value);
   decimalPlaces = parseInt(document.getElementById("decimalSelect").value);
-  if (isNaN(e) || isNaN(n)) {
-    alert("請輸入正確的 E、N 坐標！");
-    return;
-  }
+  if (isNaN(x) || isNaN(y)) return alert("Please enter valid Easting and Northing!");
 
   const points = Array.from(xmlDoc.getElementsByTagName("P")).map(p => {
-    const [y, x, z] = p.textContent.trim().split(" ").map(parseFloat);
-    return { id: p.getAttribute("id"), x, y, z };
+    const [yStr, xStr, zStr] = p.textContent.trim().split(" ");
+    return { x: parseFloat(xStr), y: parseFloat(yStr), z: parseFloat(zStr) };
   });
 
   const triangles = Array.from(xmlDoc.getElementsByTagName("F")).map(f => {
@@ -40,22 +36,26 @@ function findElevation() {
   });
 
   for (const tri of triangles) {
-    const z = interpolateZ(tri, e, n);
+    const z = interpolateZ(tri, x, y);
     if (z !== null) {
-      addToHistory(e, n, z);
+      const entry = {
+        id: pointIdCounter++,
+        e: x.toFixed(decimalPlaces),
+        n: y.toFixed(decimalPlaces),
+        z: z.toFixed(decimalPlaces),
+      };
+      addToLog(entry);
       return;
     }
   }
 
-  alert("查詢點不在地形範圍內。");
-}
+  document.getElementById("result").textContent = "⚠️ Point is outside of surface area.";
+});
 
 function interpolateZ([p1, p2, p3], x, y) {
-  const detT =
-    (p2.y - p3.y) * (p1.x - p3.x) +
-    (p3.x - p2.x) * (p1.y - p3.y);
-  const a = ((p2.y - p3.y) * (x - p3.x) + (p3.x - p2.x) * (y - p3.y)) / detT;
-  const b = ((p3.y - p1.y) * (x - p3.x) + (p1.x - p3.x) * (y - p3.y)) / detT;
+  const det = (p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y);
+  const a = ((p2.y - p3.y) * (x - p3.x) + (p3.x - p2.x) * (y - p3.y)) / det;
+  const b = ((p3.y - p1.y) * (x - p3.x) + (p1.x - p3.x) * (y - p3.y)) / det;
   const c = 1 - a - b;
 
   if (a >= 0 && b >= 0 && c >= 0) {
@@ -64,51 +64,41 @@ function interpolateZ([p1, p2, p3], x, y) {
   return null;
 }
 
-function addToHistory(e, n, z) {
-  const table = document.getElementById("history-table");
-  const row = table.insertRow();
-  const id = pointIdCounter++;
+function addToLog(entry) {
+  const table = document.querySelector("#history-table tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${entry.id}</td><td>${entry.e}</td><td>${entry.n}</td><td>${entry.z}</td>`;
+  table.appendChild(tr);
 
-  row.insertCell().textContent = id;
-  row.insertCell().textContent = e.toFixed(decimalPlaces);
-  row.insertCell().textContent = n.toFixed(decimalPlaces);
-  row.insertCell().textContent = z.toFixed(decimalPlaces);
+  const logs = JSON.parse(localStorage.getItem("elevationLogs") || "[]");
+  logs.push(entry);
+  localStorage.setItem("elevationLogs", JSON.stringify(logs));
 
-  const record = {
-    id,
-    e: e.toFixed(decimalPlaces),
-    n: n.toFixed(decimalPlaces),
-    z: z.toFixed(decimalPlaces)
-  };
-
-  const history = JSON.parse(localStorage.getItem("queryHistory")) || [];
-  history.push(record);
-  localStorage.setItem("queryHistory", JSON.stringify(history));
+  document.getElementById("result").textContent = `◼ Elevation = ${entry.z} m`;
 }
 
-function loadQueryHistory() {
-  const history = JSON.parse(localStorage.getItem("queryHistory")) || [];
-  const table = document.getElementById("history-table");
-  while (table.rows.length > 1) table.deleteRow(1);
-
-  history.forEach(item => {
-    const row = table.insertRow();
-    row.insertCell().textContent = item.id;
-    row.insertCell().textContent = item.e;
-    row.insertCell().textContent = item.n;
-    row.insertCell().textContent = item.z;
+function loadLog() {
+  const logs = JSON.parse(localStorage.getItem("elevationLogs") || "[]");
+  logs.forEach(entry => {
+    addToLog(entry);
+    if (entry.id >= pointIdCounter) pointIdCounter = entry.id + 1;
   });
-
-  if (history.length > 0) {
-    pointIdCounter = history[history.length - 1].id + 1;
-  }
 }
 
-function clearHistory() {
-  localStorage.removeItem("queryHistory");
-  const table = document.getElementById("history-table");
-  while (table.rows.length > 1) table.deleteRow(1);
+function clearLog() {
+  localStorage.removeItem("elevationLogs");
+  document.querySelector("#history-table tbody").innerHTML = "";
   pointIdCounter = 1;
 }
 
-document.addEventListener("DOMContentLoaded", loadQueryHistory);
+document.getElementById("clearLog").addEventListener("click", clearLog);
+document.getElementById("downloadXmlBtn").addEventListener("click", () => {
+  if (!originalXML) return alert("Please upload an XML first.");
+  const blob = new Blob([originalXML], { type: "application/xml" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "saved_landxml.xml";
+  link.click();
+});
+
+window.onload = loadLog;
